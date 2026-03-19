@@ -222,16 +222,20 @@ def extract_electricity(pages):
 # ─────────────────────────────────────────
 # FUNCTION 6: Extract Urea Production
 # ─────────────────────────────────────────
+# ─────────────────────────────────────────
+# FUNCTION 6: Extract Urea Production
+# ─────────────────────────────────────────
 def extract_production(pages):
     """
     Finds total urea production volume.
     Found on Page 16 of MCF report.
 
-    Exact line looks like:
-    'Your Company achieved production of 4,43,322 MTs'
+    The PDF structure is:
+    Line 41: 'Urea'
+    Line 42: 'Your Company achieved production of 4,43,322 MTs during'
 
-    This is the DENOMINATOR of the CBAM formula:
-    Embedded = (Scope1 + Scope2) / Production
+    So we look for 'achieved production' keyword
+    and extract the number from that same line.
 
     Returns production in MT as float.
     """
@@ -239,36 +243,38 @@ def extract_production(pages):
     for page_num, text in pages.items():
         text_lower = text.lower()
 
-        if 'urea' in text_lower and ('production' in text_lower
-                                      or 'mts' in text_lower):
-            lines = text.split('\n')
+        # Only check pages with production data
+        if 'achieved production' not in text_lower:
+            continue
 
-            for line in lines:
-                line_lower = line.lower()
+        lines = text.split('\n')
 
-                if ('urea' in line_lower and
-                    ('mts' in line_lower or 'production' in line_lower)):
+        for i, line in enumerate(lines):
+            line_lower = line.lower()
 
-                    numbers = re.findall(r'[\d,]+(?:\.\d+)?', line)
+            # Look for the specific "achieved production" line
+            if 'achieved production' in line_lower:
 
-                    cleaned = []
-                    for num in numbers:
-                        try:
-                            value = float(num.replace(',', ''))
-                            if value > 100000:
-                                cleaned.append(value)
-                        except ValueError:
-                            continue
+                # Find numbers in this line
+                numbers = re.findall(r'[\d,]+(?:\.\d+)?', line)
 
-                    if cleaned:
-                        print(f"Urea production found on page "
-                              f"{page_num}: {cleaned[0]} MT")
-                        return cleaned[0]
+                cleaned = []
+                for num in numbers:
+                    try:
+                        value = float(num.replace(',', ''))
+                        # Urea production > 1,00,000 MT
+                        if value > 100000:
+                            cleaned.append(value)
+                    except ValueError:
+                        continue
+
+                if cleaned:
+                    print(f"Urea production found on page "
+                          f"{page_num}: {cleaned[0]} MT")
+                    return cleaned[0]
 
     print("WARNING: Urea production not found. Returning None.")
     return None
-
-
 # ─────────────────────────────────────────
 # FUNCTION 7: Extract All Products Production
 # ─────────────────────────────────────────
@@ -303,9 +309,8 @@ def extract_all_production(pages):
             line_lower = line.lower()
 
             # Extract urea production
-            if ('urea' in line_lower and
-                ('mts' in line_lower or 'production' in line_lower)
-                and production["urea"] is None):
+            if ('achieved production' in line_lower
+            and production["urea"] is None):
 
                 numbers = re.findall(r'[\d,]+(?:\.\d+)?', line)
                 for num in numbers:

@@ -434,7 +434,7 @@ if __name__ == "__main__":
     from modules.pdf_parser import parse_pdf
 
     PDF_PATH = "/home/user/Desktop/Projects/PBL/data/sample_reports/MCFAR2024-25FINAL.pdf"
-    CSV_PATH = "data/grid_emission_factors.csv"
+    CSV_PATH = "/home/user/Desktop/Projects/PBL/data/grid_emission_factors.csv"
 
     # Step 1: Parse PDF
     parsed_data = parse_pdf(PDF_PATH, CSV_PATH)
