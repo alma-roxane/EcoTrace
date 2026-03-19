@@ -178,6 +178,30 @@ def extract_production(pages):
                         return cleaned[0]   
     print("WARNING: Urea production not found. Returning None.")
     return None
+
+def extract_year(pages):
+    """
+    Extracts the reporting financial year from the PDF.
+    Looks for pattern like '2024-25' or '2024-2025'.
+    Returns year as string.
+    """
+
+    # Pattern for financial year like 2024-25
+    year_pattern = r'20\d{2}-\d{2,4}'
+
+    for page_num, text in pages.items():
+        if page_num > 20:  # year is in early pages only
+            break
+
+        matches = re.findall(year_pattern, text)
+
+        if matches:
+            year = matches[0]
+            print(f"Reporting year found: {year}")
+            return year
+
+    print("WARNING: Year not found. Using default 2024-25.")
+    return "2024-25"
     
 
 if __name__ == "__main__":
