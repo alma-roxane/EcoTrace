@@ -48,6 +48,98 @@ def extract_text_by_page(pdf_path):
 
     return pages
     
+def extract_scope1(pages):
+
+    '''Searches for Scope 1 emissions value in the PDF.'''
+    '''Returns the value in kg CO2e or None if not found.'''
+
+    #Keywords to look for
+    scope1_keywords = ["scope 1", 
+                "direct Emissions", 
+                "scope 1 Emissions",
+                "total scope 1"]
+    #Loop through pages and search for keywords
+    for page_num, text in pages.items():
+        text_lower = text.lower()
+
+        if any(keyword in text_lower for keyword in scope1_keywords):
+            #Split
+            lines = text_lower.splitlines()
+            for line in lines:
+                if 'scope1' in line and 'scope2' not in line:
+                    numbers = re.findall(r'[\d,]+(?:\.\d+)?', line)
+
+        # Clean commas and convert to float
+                    cleaned = []
+                    for num in numbers:
+                        try:
+                            value = float(num.replace(',', ''))
+                            # Scope 1 should be a large number > 1000
+                            if value > 1000:
+                                cleaned.append(value)
+                        except ValueError:
+                            continue
+                    # Return the first valid large number found
+                    if cleaned:
+                        print(f"Scope 1 found on page {page_num}: {cleaned[0]} tCO2e")
+                        return cleaned[0]
+    # If not found anywhere
+    print("WARNING: Scope 1 not found in PDF. Returning None.")
+    return None
+
+
+def extract_electricity(pages):
+    """
+    Searches for purchased electricity value in the PDF.
+    Found on Page 28 of MCF report.
+    Value is in Lakh kWh — we convert to MWh for CBAM.
+    Returns tuple: (lakh_kwh, mwh)
+    """
+
+    electricity_keywords = [
+        "purchased",
+        "electricity",
+        "lakh kwh"
+    ]
+
+    for page_num, text in pages.items():
+        text_lower = text.lower()
+
+        # Check if electricity data is on this page
+        if 'lakh kwh' in text_lower and 'purchased' in text_lower:
+
+            lines = text.split('\n')
+
+            for line in lines:
+                line_lower = line.lower()
+
+                # Look for purchased electricity line
+                if 'purchased' in line_lower and 'lakh kwh' in line_lower:
+
+                    # Find numbers in this line
+                    numbers = re.findall(r'[\d,]+(?:\.\d+)?', line)
+
+                    cleaned = []
+                    for num in numbers:
+                        try:
+                            value = float(num.replace(',', ''))
+                            # Purchased electricity around 100-200 lakh kWh
+                            if value > 10:
+                                cleaned.append(value)
+                        except ValueError:
+                            continue
+
+                    if cleaned:
+                        lakh_kwh = cleaned[0]
+                        # Convert Lakh kWh to MWh
+                        # 1 Lakh kWh = 100,000 kWh = 100 MWh
+                        mwh = lakh_kwh * 100
+
+                        print(f"Electricity found on page {page_num}: {lakh_kwh} Lakh kWh = {mwh} MWh")
+                        return lakh_kwh, mwh
+
+    print("WARNING: Electricity data not found. Returning None.")
+    return None, None
 
 if __name__ == "__main__":
     
