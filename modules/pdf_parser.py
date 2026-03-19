@@ -141,6 +141,45 @@ def extract_electricity(pages):
     print("WARNING: Electricity data not found. Returning None.")
     return None, None
 
+def extract_production(pages):
+    '''Searches for urea production value in the pdf
+     Returns production in metric tonnes (MT) as float.'''
+    
+    production_keywords = [
+        "urea production",
+        "production of urea",
+        "urea produced"
+    ]
+
+    for page_num,text in pages.items():
+        text_lower = text.lower()
+
+        if any(keyword in text_lower for keyword in production_keywords):
+            lines = text.split('\n')
+
+            for line in lines:
+                line_lower = line.lower()
+
+                if 'urea' in line_lower and 'production' in line_lower:
+                    numbers = re.findall(r'[\d,]+(?:\.\d+)?', line)
+
+                    cleaned = []
+                    for num in numbers:
+                        try:
+                            value = float(num.replace(',', ''))
+                            # Urea production around 1000-2000 MT
+                            if value > 10000:
+                                cleaned.append(value)
+                        except ValueError:
+                            continue
+
+                    if cleaned:
+                        print(f"Production found on page {page_num}: {cleaned[0]} MT")
+                        return cleaned[0]   
+    print("WARNING: Urea production not found. Returning None.")
+    return None
+    
+
 if __name__ == "__main__":
     
 
